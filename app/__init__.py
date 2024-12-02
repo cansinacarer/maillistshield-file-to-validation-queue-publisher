@@ -1,47 +1,37 @@
+import asyncio
 import time
 
 from app.config import POLLING_INTERVAL, PAUSE
 from app.uptime import ping_uptime_monitor
-from app.utilities import list_files, enqueue_files, files_queued
+from app.utilities import enqueue_new_files, report_file_progress
 
 
-def main():
-    # Initialize the workers, which will continuously monitor the queue and consume
+async def main():
+    tasks = []
 
-    # Main loop
-    while True:
-        # If Pause is active, skip everything
-        if PAUSE:
-            print(
-                "The processing is paused, change the environment variable to continue."
-            )
-            time.sleep(5)
-            continue
+    # Uptime reporting coroutine
+    uptime_heartbeat_coroutine = asyncio.create_task(ping_uptime_monitor())
+    tasks.append(uptime_heartbeat_coroutine)
 
-        # Iterations start time
-        start_time = time.time()
+    # S3 monitoring and enqueuing coroutine
+    file_enqueue_coroutine = asyncio.create_task(enqueue_new_files())
+    tasks.append(file_enqueue_coroutine)
 
-        # List all files in validation/in-progress/
-        all_files = list_files()
+    # Create a queue that we will use to store our "workload".
+    queue = asyncio.Queue()
 
-        # Filter for the ones we haven't seen before
-        new_files = [file for file in all_files if file not in files_queued]
+    # Initialize the worker coroutines, which will continuously monitor the queue and consume
+    for i in range(3):
+        task = asyncio.create_task(worker(f"worker-{i}", queue))
+        tasks.append(task)
 
-        # Enqueue the new files
-        enqueue_files(new_files)
+    # Progress report coroutine
+    progress_report_coroutine = asyncio.create_task(report_file_progress())
+    tasks.append(progress_report_coroutine)
 
-        print(f"files_queued: {[file['Key'] for file in files_queued]}")
-
-        # TODO
-
-        # Send a heartbeat to the uptime monitor
-        print("Processing loop is active.")
-        ping_uptime_monitor()
-
-        # Iteration end time
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        # If the elapsed time is not as long as the polling interval, sleep until it is
-        sleep_time = POLLING_INTERVAL - elapsed_time
-        if sleep_time > 0:
-            time.sleep(sleep_time)
+    try:
+        # Run the tasks indefinitely
+        await asyncio.gather(*tasks)
+    except asyncio.CancelledError:
+        # Graceful shutdown with reporting
+        print("Tasks have been cancelled")

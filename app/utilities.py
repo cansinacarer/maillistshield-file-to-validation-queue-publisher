@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import os
 from app.config import (
@@ -5,6 +6,7 @@ from app.config import (
     # RETENTION_PERIOD_FOR_ORPHAN_FILES,
     S3_BUCKET_NAME,
     s3,
+    BATCH_SIZE,
 )
 from app.database import file_has_a_job_in_db, get_job_status, set_job_status
 
@@ -21,28 +23,64 @@ def list_files():
     return s3_response.get("Contents", [])
 
 
-def enqueue_files(files):
-    if len(files) < 0:
-        return
+async def report_file_progress():
+    while True:
+        print("Reporting file progress")
+        await asyncio.sleep(10)
+        pass
 
-    for item in files:
-        # Skip file if we don't find a matching db record
-        if not file_has_a_job_in_db(item["Key"]):
-            print(f'{item["Key"]} does not have a db record, skipping it.')
+
+async def enqueue_new_files():
+    while True:
+        all_files = list_files()
+        new_files = []
+
+        # Pick the new files from
+        for item in all_files:
+            # Do not include the files already queued
+            if item in files_queued:
+                continue
+            # Do not include the folder itself
+            if item["Key"] == "validation/in-progress/":
+                continue
+            new_files.append(item)
+
+        print(
+            f"{len(new_files)} new files are found (new to this worker's queue): {', '.join([item['Key'] for item in new_files])}"
+        )
+
+        if len(new_files) == 0:
             continue
 
-        # Skip file if db says the file is not file_accepted
-        if get_job_status(item["Key"]) != "file_accepted":
-            print(
-                f'{item["Key"]} has a db record but it is not file_accepted, skipping it.'
-            )
-            continue
+        # Looping separately from the above to save db queries
+        # by only checking the db status of files that are not
+        # in the queue of this worker
+        for item in new_files:
+            # Skip file if we don't find a matching db record
+            if not file_has_a_job_in_db(item["Key"]):
+                print(f'{item["Key"]} does not have a db record, skipping it.')
+                continue
 
-        # Otherwise, enqueue the file
-        files_queued.append(item)
+            # Skip file if db says the file is not file_accepted
+            if get_job_status(item["Key"]) != "file_accepted":
+                print(
+                    f'{item["Key"]} has a db record but it is not file_accepted, skipping it.'
+                )
+                continue
 
-        # Update its status in db
-        set_job_status(item["Key"], "queued")
+            # Otherwise, enqueue the file
+            files_queued.append(item)
+
+            # Update its status in db
+            set_job_status(item["Key"], "queued")
+
+            # Log
+            print(f'Enqueued file: {item["Key"]}')
+
+        await asyncio.sleep(10)
+
+
+async def validation_worker()
 
 
 def delete_file(key):

@@ -1,3 +1,6 @@
+import asyncio
+
 from app import main
 
-main()
+# Run the main function
+asyncio.run(main())

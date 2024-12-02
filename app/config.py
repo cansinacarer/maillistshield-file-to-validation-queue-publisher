@@ -11,6 +11,9 @@ S3_BUCKET_NAME = config("S3_BUCKET_NAME")
 # Polling interval (in seconds) for checking the S3 bucket for new files, pinging uptime monitor, etc.
 POLLING_INTERVAL = config("POLLING_INTERVAL", cast=int)
 
+# Number of emails to be read from a file in each iteration
+BATCH_SIZE = config("BATCH_SIZE", cast=int)
+
 # Number of seconds a file without a matching database record will be retained
 # RETENTION_PERIOD_FOR_ORPHAN_FILES = config(
 #     "RETENTION_PERIOD_FOR_ORPHAN_FILES", cast=int
