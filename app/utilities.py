@@ -80,7 +80,7 @@ async def enqueue_new_files():
         await asyncio.sleep(10)
 
 
-async def validation_worker()
+# async def validation_worker()
 
 
 def delete_file(key):

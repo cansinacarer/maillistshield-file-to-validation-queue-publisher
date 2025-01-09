@@ -1,5 +1,4 @@
 import asyncio
-import time
 
 from app.config import POLLING_INTERVAL, PAUSE
 from app.uptime import ping_uptime_monitor
