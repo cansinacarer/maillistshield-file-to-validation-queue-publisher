@@ -1,4 +1,4 @@
-# Mail List Shield - Validation Queue Loader
+# Mail List Shield - File to Validation Queue Publisher
 
 This is the process the orchestrates the file validation. It reads the file in `in_progress` with the status `file_accepted`, reads them and sends them one by one to the workers.
 
