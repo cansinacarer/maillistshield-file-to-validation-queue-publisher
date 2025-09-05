@@ -1,0 +1,36 @@
+import os
+
+from app.config import (
+    appTimezone,
+    # RETENTION_PERIOD_FOR_ORPHAN_FILES,
+    S3_BUCKET_NAME,
+    s3,
+    BATCH_SIZE,
+)
+
+
+# Returns the list of newly accepted files
+def list_files():
+    # Check if there are any new files in the S3 bucket
+    s3_response = s3.meta.client.list_objects_v2(
+        Bucket=S3_BUCKET_NAME, Prefix="validation/in-progress/"
+    )
+
+    return s3_response.get("Contents", [])
+
+
+def delete_file(key):
+    objects = [{"Key": key}]
+    try:
+        s3.Bucket(S3_BUCKET_NAME).delete_objects(Delete={"Objects": objects})
+    except Exception as e:
+        print("Error: ", e)
+
+
+def download_file(key_name, local_name):
+    file_path = os.path.join(os.path.dirname(__file__), local_name)
+
+    try:
+        s3.Bucket(S3_BUCKET_NAME).download_file(key_name, file_path)
+    except Exception as e:
+        print("Error: ", e)

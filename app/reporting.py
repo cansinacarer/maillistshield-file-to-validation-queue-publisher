@@ -14,3 +14,10 @@ async def ping_uptime_monitor():
         finally:
             # this is not blocking execution like time.sleep() does
             await asyncio.sleep(6)
+
+
+async def report_file_progress():
+    while True:
+        print("Reporting file progress")
+        await asyncio.sleep(10)
+        pass
