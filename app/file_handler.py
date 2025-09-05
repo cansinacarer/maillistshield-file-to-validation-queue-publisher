@@ -1,10 +1,10 @@
 import asyncio
 import os
 
-from app.s3 import list_files, delete_file, download_file
+from app.s3 import list_files, delete_file, download_file, move_file
 from app.database import file_has_a_job_in_db, get_job_status, set_job_status
 from app.file_enqueuer import FileEnqueuer
-from app.config import PAUSE
+from app.config import PAUSE, POLLING_INTERVAL
 
 files_queued = []
 
@@ -13,8 +13,8 @@ async def enqueue_new_files():
     while True:
         # Pause if env variable is set to pause
         if PAUSE:
-            print("File enqueuer is paused. Skipping this cycle.")
-            await asyncio.sleep(10)
+            print("File enqueuer is paused.")
+            await asyncio.sleep(POLLING_INTERVAL)
             continue
 
         all_files = list_files()
@@ -35,6 +35,8 @@ async def enqueue_new_files():
         )
 
         if len(new_files) == 0:
+            print("File enqueuer is paused. Skipping this cycle.")
+            await asyncio.sleep(POLLING_INTERVAL)
             continue
 
         # Looping separately from the above to save db queries
@@ -69,6 +71,7 @@ async def enqueue_new_files():
             local_file_path_relative = os.path.join("tmp/", local_file_name)
             local_file_path = os.path.abspath(local_file_path_relative)
             download_file(item["Key"], local_file_path)
+            print(f"Downloaded {item['Key']} to {local_file_path}")
 
             # Process the file
             result = processor.process_csv_file(local_file_path)
@@ -96,9 +99,13 @@ async def enqueue_new_files():
                 print(f"Error deleting local file {local_file_path}: {e}")
 
             # Delete remote file from S3
-            delete_file(item["Key"])
+            # delete_file(item["Key"])
+            move_file(
+                item["Key"],
+                item["Key"].replace("validation/in-progress/", "validation/queued/"),
+            )
 
             # Log
             print(f'Enqueued file: {item["Key"]}')
 
-        await asyncio.sleep(10)
+        await asyncio.sleep(POLLING_INTERVAL)

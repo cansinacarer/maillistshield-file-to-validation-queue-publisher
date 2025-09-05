@@ -34,3 +34,12 @@ def download_file(key_name, local_name):
         s3.Bucket(S3_BUCKET_NAME).download_file(key_name, file_path)
     except Exception as e:
         print("Error: ", e)
+
+
+def move_file(source_key, destination_key):
+    copy_source = {"Bucket": S3_BUCKET_NAME, "Key": source_key}
+    try:
+        s3.meta.client.copy(copy_source, S3_BUCKET_NAME, destination_key)
+        delete_file(source_key)
+    except Exception as e:
+        print("Error: ", e)
