@@ -1,6 +1,6 @@
 import asyncio
 
-from app.reporting import ping_uptime_monitor, report_file_progress
+from app.reporting import ping_uptime_monitor
 from app.file_handler import enqueue_new_files
 
 
@@ -14,10 +14,6 @@ async def main():
     # Uptime reporting coroutine
     uptime_heartbeat_coroutine = asyncio.create_task(ping_uptime_monitor())
     tasks.append(uptime_heartbeat_coroutine)
-
-    # Progress report coroutine
-    progress_report_coroutine = asyncio.create_task(report_file_progress())
-    tasks.append(progress_report_coroutine)
 
     try:
         # Run the tasks indefinitely

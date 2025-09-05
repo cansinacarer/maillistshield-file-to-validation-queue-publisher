@@ -1,5 +1,5 @@
 from decouple import config
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     create_engine,

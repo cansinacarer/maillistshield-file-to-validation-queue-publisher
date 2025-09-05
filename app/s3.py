@@ -2,10 +2,8 @@ import os
 
 from app.config import (
     appTimezone,
-    # RETENTION_PERIOD_FOR_ORPHAN_FILES,
     S3_BUCKET_NAME,
     s3,
-    BATCH_SIZE,
 )
 
 

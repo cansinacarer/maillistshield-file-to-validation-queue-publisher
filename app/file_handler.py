@@ -1,10 +1,16 @@
 import asyncio
 import os
 
-from app.s3 import list_files, delete_file, download_file, move_file
+from app.s3 import list_files, download_file, move_file
 from app.database import file_has_a_job_in_db, get_job_status, set_job_status
 from app.file_enqueuer import FileEnqueuer
-from app.config import PAUSE, POLLING_INTERVAL
+from app.config import (
+    PAUSE,
+    POLLING_INTERVAL,
+    RABBITMQ_HOST,
+    RABBITMQ_USERNAME,
+    RABBITMQ_PASSWORD,
+)
 
 files_queued = []
 
@@ -30,14 +36,14 @@ async def enqueue_new_files():
                 continue
             new_files.append(item)
 
-        print(
-            f"{len(new_files)} new files are found (new to this worker's queue): {', '.join([item['Key'] for item in new_files])}"
-        )
-
         if len(new_files) == 0:
-            print("File enqueuer is paused. Skipping this cycle.")
+            print("File enqueuer did not find any files.")
             await asyncio.sleep(POLLING_INTERVAL)
             continue
+
+        print(
+            f"{len(new_files)} new files are found: {', '.join([item['Key'] for item in new_files])}"
+        )
 
         # Looping separately from the above to save db queries
         # by only checking the db status of files that are not
@@ -58,9 +64,9 @@ async def enqueue_new_files():
             # Otherwise, enqueue the file rows
             # Create file processor
             processor = FileEnqueuer(
-                rabbitmq_host="rabbitmq.apps.cansin.net",
-                username="cca",
-                password="2q_0o9nc$XCP_zM",
+                rabbitmq_host=RABBITMQ_HOST,
+                username=RABBITMQ_USERNAME,
+                password=RABBITMQ_PASSWORD,
             )
             # Connect to RabbitMQ
             if not processor.connect():
@@ -99,7 +105,6 @@ async def enqueue_new_files():
                 print(f"Error deleting local file {local_file_path}: {e}")
 
             # Delete remote file from S3
-            # delete_file(item["Key"])
             move_file(
                 item["Key"],
                 item["Key"].replace("validation/in-progress/", "validation/queued/"),
