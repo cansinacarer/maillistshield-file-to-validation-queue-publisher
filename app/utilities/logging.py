@@ -24,7 +24,7 @@ def _set_up_logger():
 
     # Initialize the root logger
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
 
     # Add handlers to the logger
     if not logger.handlers:
