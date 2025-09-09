@@ -34,9 +34,11 @@ pure_eval==0.2.3
 Pygments==2.19.2
 python-dateutil==2.9.0.post0
 python-decouple==3.8
+python-logging-loki==0.3.1
 pytz==2024.2
 pyzmq==27.0.2
 requests==2.32.3
+rfc3339==6.2
 s3transfer==0.10.3
 six==1.16.0
 SQLAlchemy==2.0.36
