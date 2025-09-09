@@ -23,7 +23,7 @@ def _set_up_logger():
     console_handler.setFormatter(console_formatter)
 
     # Initialize the root logger
-    logger = logging.getLogger()
+    logger = logging.getLogger("mls")
     logger.setLevel(logging.DEBUG)
 
     # Add handlers to the logger
