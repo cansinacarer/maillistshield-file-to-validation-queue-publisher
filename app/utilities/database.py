@@ -1,4 +1,3 @@
-from decouple import config
 from datetime import datetime, timezone
 
 from sqlalchemy import (

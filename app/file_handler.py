@@ -1,8 +1,8 @@
 import asyncio
 import os
 
-from app.s3 import list_files, download_file, move_file
-from app.database import file_has_a_job_in_db, get_job_status, set_job_status
+from app.utilities.s3 import list_files, download_file, move_file
+from app.utilities.database import file_has_a_job_in_db, get_job_status, set_job_status
 from app.file_enqueuer import FileEnqueuer
 from app.config import (
     PAUSE,
@@ -23,7 +23,7 @@ async def enqueue_new_files():
             await asyncio.sleep(POLLING_INTERVAL)
             continue
 
-        all_files = list_files()
+        all_files = list_files(prefix="validation/in-progress/")
         new_files = []
 
         # Pick the new files from

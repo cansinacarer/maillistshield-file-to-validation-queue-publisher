@@ -1,18 +1,15 @@
 import os
 
 from app.config import (
-    appTimezone,
     S3_BUCKET_NAME,
     s3,
 )
 
 
 # Returns the list of newly accepted files
-def list_files():
+def list_files(prefix=""):
     # Check if there are any new files in the S3 bucket
-    s3_response = s3.meta.client.list_objects_v2(
-        Bucket=S3_BUCKET_NAME, Prefix="validation/in-progress/"
-    )
+    s3_response = s3.meta.client.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=prefix)
 
     return s3_response.get("Contents", [])
 

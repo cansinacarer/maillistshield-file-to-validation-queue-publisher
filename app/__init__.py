@@ -1,6 +1,6 @@
 import asyncio
 
-from app.reporting import ping_uptime_monitor
+from app.utilities.reporting import ping_uptime_monitor
 from app.file_handler import enqueue_new_files
 
 

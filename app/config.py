@@ -19,8 +19,15 @@ DATABASE_CONNECTION_STRING = config("DATABASE_CONNECTION_STRING")
 
 # RabbitMQ connection
 RABBITMQ_HOST = config("RABBITMQ_HOST")
+RABBITMQ_VHOST = config("RABBITMQ_VHOST")
 RABBITMQ_USERNAME = config("RABBITMQ_USERNAME")
 RABBITMQ_PASSWORD = config("RABBITMQ_PASSWORD")
+
+# Logging to Loki
+LOKI_USER = config("LOKI_USER")
+LOKI_PASSWORD = config("LOKI_PASSWORD")
+LOKI_HOST = config("LOKI_HOST")
+LOKI_SERVICE = config("LOKI_SERVICE")
 
 # Timezone used in this app
 appTimezoneStr = config("TIMEZONE")
