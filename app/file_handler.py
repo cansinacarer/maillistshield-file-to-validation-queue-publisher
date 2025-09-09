@@ -38,7 +38,7 @@ async def enqueue_new_files():
             new_files.append(item)
 
         if len(new_files) == 0:
-            logger.info("File enqueuer did not find any files.")
+            logger.debug("File enqueuer did not find any files.")
             await asyncio.sleep(POLLING_INTERVAL)
             continue
 
