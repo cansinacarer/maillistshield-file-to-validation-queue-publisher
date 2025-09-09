@@ -8,6 +8,8 @@ import io
 import os
 from datetime import datetime
 
+from app.utilities.logging import logger
+
 
 class FileEnqueuer:
     """
@@ -47,16 +49,18 @@ class FileEnqueuer:
                 )
                 self.connection = pika.BlockingConnection(parameters)
                 self.channel = self.connection.channel()
-                print(
+                logger.debug(
                     f"Connected to RabbitMQ at {self.rabbitmq_host}:{self.rabbitmq_port}"
                 )
                 return True
             except Exception as e:
-                print(f"Connection attempt {attempt + 1}/{max_retries} failed: {e}")
+                logger.warning(
+                    f"Connection attempt {attempt + 1}/{max_retries} failed: {e}"
+                )
                 if attempt < max_retries - 1:
                     time.sleep(retry_delay)
                 else:
-                    print("Failed to connect to RabbitMQ after all retries")
+                    logger.error("Failed to connect to RabbitMQ after all retries.")
                     return False
 
     def disconnect(self):
@@ -64,9 +68,9 @@ class FileEnqueuer:
         try:
             if self.connection and not self.connection.is_closed:
                 self.connection.close()
-                print("Disconnected from RabbitMQ")
+                logger.debug("Disconnected from RabbitMQ")
         except Exception as e:
-            print(f"Error during disconnect: {e}")
+            logger.warning(f"Error during disconnect: {e}")
 
     def process_csv_file(self, filepath):
         """
@@ -95,7 +99,7 @@ class FileEnqueuer:
 
         try:
             # Read and validate CSV file
-            print(f"Reading CSV file: {filepath}")
+            logger.debug(f"Reading CSV file: {filepath}")
             with open(filepath, "r", encoding="utf-8") as file:
                 csv_content = file.read()
 
@@ -104,7 +108,7 @@ class FileEnqueuer:
             rows = list(csv_reader)
 
             if not rows:
-                print(f"No data rows found in {filename}")
+                logger.warning(f"No data rows found in {filename}")
                 return {
                     "filename": filename,
                     "filepath": filepath,
@@ -115,7 +119,7 @@ class FileEnqueuer:
 
             # Declare durable queue for this file
             self.channel.queue_declare(queue=queue_name, durable=True)
-            print(f"Created queue: {queue_name}")
+            logger.debug(f"Created queue: {queue_name}")
 
             # Publish each row as individual message
             published_count = 0
@@ -152,7 +156,7 @@ class FileEnqueuer:
 
                 # Log progress for large files
                 if published_count % 1000 == 0:
-                    print(
+                    logger.debug(
                         f"Published {published_count}/{len(rows)} rows from {filename}"
                     )
 
@@ -170,14 +174,14 @@ class FileEnqueuer:
                 "status": "success",
             }
 
-            print(
+            logger.debug(
                 f"Successfully processed {filename}: {published_count} rows -> {queue_name}"
             )
             return result
 
         except FileNotFoundError:
             error_msg = f"File not found: {filepath}"
-            print(error_msg)
+            logger.error(error_msg)
             return {
                 "filename": filename,
                 "filepath": filepath,
@@ -186,7 +190,7 @@ class FileEnqueuer:
             }
         except csv.Error as e:
             error_msg = f"CSV parsing error in {filename}: {e}"
-            print(error_msg)
+            logger.error(error_msg)
             return {
                 "filename": filename,
                 "filepath": filepath,
@@ -195,7 +199,7 @@ class FileEnqueuer:
             }
         except Exception as e:
             error_msg = f"Error processing {filename}: {e}"
-            print(error_msg)
+            logger.error(error_msg)
             return {
                 "filename": filename,
                 "filepath": filepath,

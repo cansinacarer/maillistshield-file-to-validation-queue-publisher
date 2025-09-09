@@ -1,12 +1,13 @@
 import requests
 import asyncio
 from app.config import UPTIME_MONITOR, POLLING_INTERVAL
+from app.utilities.logging import logger
 
 
 # Send a heartbeat the the uptime monitor
 async def ping_uptime_monitor():
     while True:
-        print("Sending heartbeat to uptime monitor.")
+        logger.info("Sending heartbeat to uptime monitor.")
         try:
             requests.get(UPTIME_MONITOR)
         except:

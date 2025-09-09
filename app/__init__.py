@@ -1,6 +1,7 @@
 import asyncio
 
 from app.utilities.reporting import ping_uptime_monitor
+from app.utilities.logging import logger
 from app.file_handler import enqueue_new_files
 
 
@@ -20,4 +21,4 @@ async def main():
         await asyncio.gather(*tasks)
     except asyncio.CancelledError:
         # Graceful shutdown with reporting
-        print("Tasks have been cancelled")
+        logger.info("Tasks have been cancelled")

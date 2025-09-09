@@ -3,6 +3,7 @@ import os
 
 from app.utilities.s3 import list_files, download_file, move_file
 from app.utilities.database import file_has_a_job_in_db, get_job_status, set_job_status
+from app.utilities.logging import logger
 from app.file_enqueuer import FileEnqueuer
 from app.config import (
     PAUSE,
@@ -19,7 +20,7 @@ async def enqueue_new_files():
     while True:
         # Pause if env variable is set to pause
         if PAUSE:
-            print("File enqueuer is paused.")
+            logger.info("File enqueuer is paused.")
             await asyncio.sleep(POLLING_INTERVAL)
             continue
 
@@ -37,11 +38,11 @@ async def enqueue_new_files():
             new_files.append(item)
 
         if len(new_files) == 0:
-            print("File enqueuer did not find any files.")
+            logger.info("File enqueuer did not find any files.")
             await asyncio.sleep(POLLING_INTERVAL)
             continue
 
-        print(
+        logger.debug(
             f"{len(new_files)} new files are found: {', '.join([item['Key'] for item in new_files])}"
         )
 
@@ -51,12 +52,12 @@ async def enqueue_new_files():
         for item in new_files:
             # Skip file if we don't find a matching db record
             if not file_has_a_job_in_db(item["Key"]):
-                print(f'{item["Key"]} does not have a db record, skipping it.')
+                logger.debug(f'{item["Key"]} does not have a db record, skipping it.')
                 continue
 
             # Skip file if db says the file is not file_accepted
             if get_job_status(item["Key"]) != "file_accepted":
-                print(
+                logger.debug(
                     f'{item["Key"]} has a db record but it is not file_accepted, skipping it.'
                 )
                 continue
@@ -70,26 +71,31 @@ async def enqueue_new_files():
             )
             # Connect to RabbitMQ
             if not processor.connect():
-                print("ERROR: Could not connect to RabbitMQ")
+                logger.error("Could not connect to RabbitMQ")
 
             # Download the file locally
             local_file_name = os.path.basename(item["Key"])
             local_file_path_relative = os.path.join("tmp/", local_file_name)
             local_file_path = os.path.abspath(local_file_path_relative)
             download_file(item["Key"], local_file_path)
-            print(f"Downloaded {item['Key']} to {local_file_path}")
+            logger.debug(f"Downloaded {item['Key']} to {local_file_path}")
 
             # Process the file
             result = processor.process_csv_file(local_file_path)
 
             if result["status"] == "success":
-                print(f"✓ Successfully processed {result['filename']}")
-                print(f"  Rows published: {result['rows_published']}")
-                print(f"  Queue created: {result['queue_name']}")
-                print(f"  Processing time: {result['processing_time_seconds']}s")
+                logger.info(
+                    f"Successfully processed {result['filename']}",
+                    extra={
+                        "filename": result["filename"],
+                        "rows_published": result["rows_published"],
+                        "queue_name": result["queue_name"],
+                        "processing_time_seconds": result["processing_time_seconds"],
+                    },
+                )
             else:
-                print(
-                    f"✗ Failed to process {result['filename']}: {result.get('error', 'Unknown error')}"
+                logger.error(
+                    f"Failed to process {result['filename']}: {result.get('error', 'Unknown error')}"
                 )
 
             # Add file to the enqueued list to avoid re-enqueuing
@@ -102,7 +108,7 @@ async def enqueue_new_files():
             try:
                 os.remove(local_file_path)
             except Exception as e:
-                print(f"Error deleting local file {local_file_path}: {e}")
+                logger.error(f"Error deleting local file {local_file_path}: {e}")
 
             # Delete remote file from S3
             move_file(
@@ -111,6 +117,6 @@ async def enqueue_new_files():
             )
 
             # Log
-            print(f'Enqueued file: {item["Key"]}')
+            logger.debug(f'Enqueued file: {item["Key"]}')
 
         await asyncio.sleep(POLLING_INTERVAL)

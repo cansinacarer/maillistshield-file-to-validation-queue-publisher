@@ -12,7 +12,7 @@ def _set_up_logger():
     # Set up Loki handler
     loki_handler = logging_loki.LokiHandler(
         url=f"{LOKI_HOST}/loki/api/v1/push",
-        tags={"application": "maillistshield"},
+        tags={"application": "maillistshield", "service": LOKI_SERVICE},
         auth=(LOKI_USER, LOKI_PASSWORD),
         version="1",
     )
