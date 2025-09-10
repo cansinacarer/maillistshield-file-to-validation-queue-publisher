@@ -8,9 +8,6 @@ from app.file_enqueuer import FileEnqueuer
 from app.config import (
     PAUSE,
     POLLING_INTERVAL,
-    RABBITMQ_HOST,
-    RABBITMQ_USERNAME,
-    RABBITMQ_PASSWORD,
 )
 
 
