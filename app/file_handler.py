@@ -59,14 +59,7 @@ async def enqueue_new_files():
 
             # Otherwise, enqueue the file rows
             # Create file processor
-            processor = FileEnqueuer(
-                rabbitmq_host=RABBITMQ_HOST,
-                username=RABBITMQ_USERNAME,
-                password=RABBITMQ_PASSWORD,
-            )
-            # Connect to RabbitMQ
-            if not processor.connect():
-                logger.error("Could not connect to RabbitMQ")
+            processor = FileEnqueuer()
 
             # Download the file locally
             local_file_name = os.path.basename(item["Key"])
@@ -78,17 +71,7 @@ async def enqueue_new_files():
             # Process the file
             result = processor.process_csv_file(local_file_path)
 
-            if result["status"] == "success":
-                logger.info(
-                    f"Successfully processed {result['filename']}",
-                    extra={
-                        "filename_processed": result["filename"],
-                        "rows_published": result["rows_published"],
-                        "queue_name": result["queue_name"],
-                        "processing_time_seconds": result["processing_time_seconds"],
-                    },
-                )
-            else:
+            if result["status"] != "success":
                 logger.error(
                     f"Failed to process {result['filename']}: {result.get('error', 'Unknown error')}"
                 )

@@ -8,12 +8,7 @@ import io
 import os
 from datetime import datetime
 
-from app.config import (
-    RABBITMQ_HOST,
-    RABBITMQ_VHOST,
-    RABBITMQ_USERNAME,
-    RABBITMQ_PASSWORD,
-)
+from app.utilities.rabbitmq import QueueAgent
 from app.utilities.logging import logger
 
 
@@ -22,61 +17,9 @@ class FileEnqueuer:
     Processor that reads CSV files and publishes rows to RabbitMQ
     """
 
-    def __init__(
-        self,
-        rabbitmq_host=RABBITMQ_HOST,
-        username="",
-        password="",
-        rabbitmq_port=5672,
-        queue_prefix="batch_validation",
-    ):
-        self.rabbitmq_host = rabbitmq_host
-        self.rabbitmq_port = rabbitmq_port
-        self.username = username
-        self.password = password
-        self.queue_prefix = queue_prefix
-        self.connection = None
-        self.channel = None
-
-    def connect(self):
-        """Connect to RabbitMQ with retry logic"""
-        max_retries = 5
-        retry_delay = 5  # seconds
-
-        for attempt in range(max_retries):
-            try:
-                credentials = pika.PlainCredentials(self.username, self.password)
-                parameters = pika.ConnectionParameters(
-                    host=self.rabbitmq_host,
-                    port=self.rabbitmq_port,
-                    credentials=credentials,
-                    heartbeat=600,
-                    blocked_connection_timeout=300,
-                )
-                self.connection = pika.BlockingConnection(parameters)
-                self.channel = self.connection.channel()
-                logger.debug(
-                    f"Connected to RabbitMQ at {self.rabbitmq_host}:{self.rabbitmq_port}"
-                )
-                return True
-            except Exception as e:
-                logger.warning(
-                    f"Connection attempt {attempt + 1}/{max_retries} failed: {e}"
-                )
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-                else:
-                    logger.error("Failed to connect to RabbitMQ after all retries.")
-                    return False
-
-    def disconnect(self):
-        """Safely disconnect from RabbitMQ"""
-        try:
-            if self.connection and not self.connection.is_closed:
-                self.connection.close()
-                logger.debug("Disconnected from RabbitMQ")
-        except Exception as e:
-            logger.warning(f"Error during disconnect: {e}")
+    def __init__(self):
+        self.queue_prefix = "batch_validation"
+        self.queue_agent = QueueAgent(rabbitmq_vhost="mls.batch.pending_validation")
 
     def process_csv_file(self, filepath):
         """
@@ -90,7 +33,8 @@ class FileEnqueuer:
         """
         filename = os.path.basename(filepath)
 
-        if not self.connection:
+        if not self.queue_agent:
+            logger.error("Queue agent is not initialized.")
             raise Exception("Not connected to RabbitMQ.")
 
         # Create safe queue name
@@ -124,8 +68,7 @@ class FileEnqueuer:
                 }
 
             # Declare durable queue for this file
-            self.channel.queue_declare(queue=queue_name, durable=True)
-            logger.debug(f"Created queue: {queue_name}")
+            self.queue_agent.create_queue(queue_name)
 
             # Publish each row as individual message
             published_count = 0
@@ -144,20 +87,7 @@ class FileEnqueuer:
                 }
 
                 # Publish with persistence
-                self.channel.basic_publish(
-                    exchange="",  # Use default exchange (direct to queue)
-                    routing_key=queue_name,
-                    body=json.dumps(message),
-                    properties=pika.BasicProperties(
-                        delivery_mode=2,  # Persistent message
-                        message_id=message["messageId"],
-                        headers={
-                            "filename": filename,
-                            "rowNumber": row_num,
-                            "totalRows": len(rows),
-                        },
-                    ),
-                )
+                self.queue_agent.publish_message(queue_name, json.dumps(message))
                 published_count += 1
 
                 # Log progress periodically for large files
@@ -180,7 +110,7 @@ class FileEnqueuer:
                 "status": "success",
             }
 
-            logger.debug(
+            logger.info(
                 f"Successfully processed {filename}: {published_count} rows -> {queue_name}"
             )
             return result
