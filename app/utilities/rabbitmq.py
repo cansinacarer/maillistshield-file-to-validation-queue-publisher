@@ -202,6 +202,19 @@ class QueueAgent:
                 logger.error(f"Invalid message_type '{message_type}' specified.")
                 return None
 
+    def get_message_counts(self, queue_name):
+        """
+        Get the counts of ready, unacked, and total messages in a specified queue.
+
+        Returns:
+            A dict with keys 'ready', 'unacked', and 'total'.
+        """
+        return {
+            "ready": self.get_message_count(queue_name, message_type="ready"),
+            "unacked": self.get_message_count(queue_name, message_type="unacked"),
+            "total": self.get_message_count(queue_name, message_type="total"),
+        }
+
     def get_message(self, queue_name, auto_ack=False):
         """
         Retrieve a single message from the specified queue.
@@ -214,15 +227,74 @@ class QueueAgent:
             The message body as a dict if a message is available, None otherwise.
         """
         try:
-            method_frame, header_frame, body = self.channel.basic_get(
+            method_frame, properties, body = self.channel.basic_get(
                 queue=queue_name, auto_ack=auto_ack
             )
             if method_frame:
                 logger.debug(f"Retrieved message from queue '{queue_name}'.")
-                return json.loads(body)
+                message = json.loads(body)
+                # Append the delivery_tag for ack/nack operations
+                message["delivery_tag"] = method_frame.delivery_tag
+                return message
             else:
                 logger.debug(f"No messages in queue '{queue_name}'.")
                 return None
         except Exception as e:
             logger.error(f"Error retrieving message from queue '{queue_name}': {e}")
         return None
+
+    def acknowledge_message(self, message):
+        """
+        Acknowledge a message by its delivery tag.
+
+        Args:
+            message: The message body dict with the delivery tag appended.
+
+        Returns:
+            True if the message was acknowledged successfully, False otherwise.
+        """
+        try:
+            # Grab the delivery tag we appended to the message dict
+            delivery_tag = message.get("delivery_tag")
+            if not delivery_tag:
+                logger.error("Message does not contain a delivery_tag.")
+                return False
+
+            self.channel.basic_ack(delivery_tag)
+            logger.debug(f"Acknowledged message with delivery tag '{delivery_tag}'.")
+            return True
+        except Exception as e:
+            logger.error(
+                f"Error acknowledging message with delivery tag '{delivery_tag}': {e}"
+            )
+        return False
+
+    def reject_message(self, message, requeue=True):
+        """
+        Reject a message by its delivery tag.
+
+        Args:
+            message: The message body dict with the delivery tag appended.
+            requeue: Whether to requeue the message.
+
+        Returns:
+            True if the message was rejected successfully, False otherwise.
+        """
+        try:
+            # Grab the delivery tag we appended to the message dict
+            delivery_tag = message.get("delivery_tag")
+            if not delivery_tag:
+                logger.error("Message does not contain a delivery_tag.")
+                return False
+
+            # Reject the message
+            self.channel.basic_nack(delivery_tag, requeue=requeue)
+            logger.debug(
+                f"Rejected message with delivery tag '{delivery_tag}'. Requeue: {requeue}"
+            )
+            return True
+        except Exception as e:
+            logger.error(
+                f"Error rejecting message with delivery tag '{delivery_tag}': {e}"
+            )
+        return False
