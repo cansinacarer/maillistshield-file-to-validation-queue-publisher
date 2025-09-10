@@ -13,8 +13,6 @@ from app.config import (
     RABBITMQ_PASSWORD,
 )
 
-files_queued = []
-
 
 async def enqueue_new_files():
     while True:
@@ -29,9 +27,6 @@ async def enqueue_new_files():
 
         # Pick the new files from
         for item in all_files:
-            # Do not include the files already queued
-            if item in files_queued:
-                continue
             # Do not include the folder itself
             if item["Key"] == "validation/in-progress/":
                 continue
@@ -97,9 +92,6 @@ async def enqueue_new_files():
                 logger.error(
                     f"Failed to process {result['filename']}: {result.get('error', 'Unknown error')}"
                 )
-
-            # Add file to the enqueued list to avoid re-enqueuing
-            files_queued.append(item)
 
             # Update its status in db
             set_job_status(item["Key"], "file_queued")
