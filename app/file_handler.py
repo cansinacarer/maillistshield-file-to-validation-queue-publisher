@@ -87,7 +87,7 @@ async def enqueue_new_files():
                 logger.info(
                     f"Successfully processed {result['filename']}",
                     extra={
-                        "filename": result["filename"],
+                        "filename_processed": result["filename"],
                         "rows_published": result["rows_published"],
                         "queue_name": result["queue_name"],
                         "processing_time_seconds": result["processing_time_seconds"],
