@@ -8,6 +8,12 @@ import io
 import os
 from datetime import datetime
 
+from app.config import (
+    RABBITMQ_HOST,
+    RABBITMQ_VHOST,
+    RABBITMQ_USERNAME,
+    RABBITMQ_PASSWORD,
+)
 from app.utilities.logging import logger
 
 
@@ -18,7 +24,7 @@ class FileEnqueuer:
 
     def __init__(
         self,
-        rabbitmq_host="",
+        rabbitmq_host=RABBITMQ_HOST,
         username="",
         password="",
         rabbitmq_port=5672,
@@ -154,7 +160,7 @@ class FileEnqueuer:
                 )
                 published_count += 1
 
-                # Log progress for large files
+                # Log progress periodically for large files
                 if published_count % 1000 == 0:
                     logger.debug(
                         f"Published {published_count}/{len(rows)} rows from {filename}"
