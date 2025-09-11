@@ -19,7 +19,7 @@ class FileEnqueuer:
 
     def __init__(self):
         self.queue_prefix = "batch_validation"
-        self.queue_agent = QueueAgent(rabbitmq_vhost="mls.batch.pending_validation")
+        self.queue_agent = QueueAgent()
 
     def process_csv_file(self, filepath):
         """

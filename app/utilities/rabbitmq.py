@@ -1,6 +1,6 @@
 from app.config import (
     RABBITMQ_HOST,
-    RABBITMQ_VHOST,
+    RABBITMQ_DEFAULT_VHOST,
     RABBITMQ_USERNAME,
     RABBITMQ_PASSWORD,
 )
@@ -20,7 +20,7 @@ class QueueAgent:
 
     def __init__(
         self,
-        rabbitmq_vhost=RABBITMQ_VHOST,
+        rabbitmq_vhost=RABBITMQ_DEFAULT_VHOST,
         rabbitmq_host=RABBITMQ_HOST,
         rabbitmq_port=5672,
         rabbitmq_username=RABBITMQ_USERNAME,
