@@ -82,7 +82,7 @@ async def enqueue_new_files():
             except Exception as e:
                 logger.error(f"Error deleting local file {local_file_path}: {e}")
 
-            # Delete remote file from S3
+            # Move the remote file from in-progress to queued
             move_file(
                 item["Key"],
                 item["Key"].replace("validation/in-progress/", "validation/queued/"),
