@@ -32,7 +32,7 @@ class QueueAgent:
         self.rabbitmq_username = rabbitmq_username
         self.rabbitmq_password = rabbitmq_password
 
-        self.url = f"https://{self.rabbitmq_host}/api/queues/{self.rabbitmq_vhost}"
+        self.url = f"https://{self.rabbitmq_host}/api/queues/{self.rabbitmq_vhost.replace('/', '%2F')}"
         self.connection = None
         self.channel = None
 
