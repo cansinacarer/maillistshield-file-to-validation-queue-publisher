@@ -64,7 +64,7 @@ class QueueAgent:
                 self.channel.basic_qos(prefetch_count=1)
 
                 logger.debug(
-                    f"Connected to RabbitMQ at {self.rabbitmq_host}:{self.rabbitmq_port}"
+                    f"Connected to RabbitMQ at {self.rabbitmq_host}:{self.rabbitmq_port}/{self.rabbitmq_vhost}"
                 )
                 return True
             except Exception as e:
