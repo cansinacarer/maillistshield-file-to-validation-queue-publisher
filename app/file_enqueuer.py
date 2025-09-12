@@ -87,7 +87,7 @@ class FileEnqueuer:
                 }
 
                 # Publish with persistence
-                self.queue_agent.publish_message(queue_name, json.dumps(message))
+                self.queue_agent.publish_message(queue_name, message)
                 published_count += 1
 
                 # Log progress periodically for large files
