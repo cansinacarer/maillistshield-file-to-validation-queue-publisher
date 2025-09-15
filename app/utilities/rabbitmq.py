@@ -100,11 +100,11 @@ class QueueAgent:
                 ),
             )
             response.raise_for_status()
+            return response.json()
+
         except requests.exceptions.RequestException as e:
             logger.error(f"Error connecting to RabbitMQ Management API:\n{e}")
             return None
-
-        return response.json()
 
     def list_all_queues(self):
         """
@@ -115,13 +115,15 @@ class QueueAgent:
         queue_names = [queue.get("name") for queue in queues_details]
         return queue_names
 
-    def create_queue(self, queue_name):
+    def create_queue(self, queue_name, arguments={}):
         """
         Create a queue in RabbitMQ if it does not exist.
         """
         try:
             # Declare the queue (idempotent operation)
-            self.channel.queue_declare(queue=queue_name, durable=True)
+            self.channel.queue_declare(
+                queue=queue_name, arguments=arguments, durable=True
+            )
             logger.debug(f"Created queue: '{queue_name}'.")
             return True
         except Exception as e:
@@ -160,7 +162,9 @@ class QueueAgent:
                     delivery_mode=2,  # Make message persistent
                 ),
             )
-            logger.debug(f"Published message to queue '{queue_name}'.")
+            logger.debug(
+                f"Published message to vhost '{self.rabbitmq_vhost}', queue '{queue_name}'."
+            )
             return True
         except Exception as e:
             logger.error(f"Error publishing message to queue '{queue_name}': {e}")
@@ -231,7 +235,9 @@ class QueueAgent:
                 queue=queue_name, auto_ack=auto_ack
             )
             if method_frame:
-                logger.debug(f"Retrieved message from queue '{queue_name}'.")
+                logger.debug(
+                    f"Retrieved message from vhost '{self.rabbitmq_vhost}', queue '{queue_name}'."
+                )
                 message = json.loads(body)
                 # Append the delivery_tag for ack/nack operations
                 message["delivery_tag"] = method_frame.delivery_tag
@@ -298,3 +304,38 @@ class QueueAgent:
                 f"Error rejecting message with delivery tag '{delivery_tag}': {e}"
             )
         return False
+
+    def get_queue_props(self, queue_name):
+        """
+        List all attributes of a queue in the RabbitMQ vhost specified for the parent.
+
+        This connects to the RabbitMQ Management API to retrieve the list of queues.
+        """
+
+        try:
+            response = requests.get(
+                f"{self.url}/{queue_name}",
+                auth=requests.auth.HTTPBasicAuth(
+                    self.rabbitmq_username, self.rabbitmq_password
+                ),
+            )
+            response.raise_for_status()
+            return response.json()
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error connecting to RabbitMQ Management API:\n{e}")
+            return None
+
+    def get_expected_message_count(self, queue_name):
+        """
+        Get the expected message count from the queue arguments.
+
+        Returns:
+            The expected message count as an integer, or None if not set.
+        """
+        props = self.get_queue_props(queue_name)
+        if not props:
+            return None
+
+        arguments = props.get("arguments", {})
+        return arguments.get("row_count")
