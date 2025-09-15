@@ -23,11 +23,11 @@ def delete_file(key):
         logger.error(f"Error deleting file: {e}", extra={"file_key": key})
 
 
-def download_file(key_name, local_name):
+def download_file(key, local_name):
     file_path = os.path.join(os.path.dirname(__file__), local_name)
 
     try:
-        s3.Bucket(S3_BUCKET_NAME).download_file(key_name, file_path)
+        s3.Bucket(S3_BUCKET_NAME).download_file(key, file_path)
     except Exception as e:
         logger.error(f"Error downloading file: {e}", extra={"file_key": key})
 
