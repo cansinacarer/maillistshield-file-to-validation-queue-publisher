@@ -15,7 +15,9 @@ async def enqueue_new_files():
     while True:
         # Pause if env variable is set to pause
         if PAUSE:
-            logger.info("File enqueuer is paused.")
+            logger.info(
+                "File to validation queue publisher is paused, change the environment variable `PAUSE` to resume it."
+            )
             await asyncio.sleep(POLLING_INTERVAL)
             continue
 
@@ -30,7 +32,9 @@ async def enqueue_new_files():
             new_files.append(item)
 
         if len(new_files) == 0:
-            logger.debug("File enqueuer did not find any files.")
+            logger.debug(
+                f"No files were found. Sleeping for {POLLING_INTERVAL} seconds."
+            )
             await asyncio.sleep(POLLING_INTERVAL)
             continue
 
