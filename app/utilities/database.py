@@ -88,3 +88,8 @@ def set_job_status(file, status):
     job = session.query(BatchJobs).filter_by(accepted_file=file).first()
     job.status = status
     session.commit()
+
+
+def get_job_uid_from_db(file):
+    job = session.query(BatchJobs).filter_by(accepted_file=file).first()
+    return job.uid if job else None

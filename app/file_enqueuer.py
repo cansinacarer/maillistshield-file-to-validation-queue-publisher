@@ -10,6 +10,7 @@ from datetime import datetime
 
 from app.utilities.rabbitmq import QueueAgent
 from app.utilities.logging import logger
+from app.utilities.database import get_job_uid_from_db
 
 
 class FileEnqueuer:
@@ -68,7 +69,12 @@ class FileEnqueuer:
                 }
 
             # Declare durable queue for this file
-            self.queue_agent.create_queue(queue_name)
+            self.queue_agent.create_queue(
+                queue_name,
+                arguments={
+                    "jobuid": get_job_uid_from_db(f"validation/in-progress/{filename}")
+                },
+            )
 
             # Publish each row as individual message
             published_count = 0
@@ -111,7 +117,7 @@ class FileEnqueuer:
             }
 
             logger.info(
-                f"Successfully processed {filename}: {published_count} rows -> {queue_name}"
+                f"Successfully queued the rows of the file {filename}: {published_count} rows -> {queue_name}"
             )
             return result
 
