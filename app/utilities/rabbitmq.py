@@ -140,6 +140,17 @@ class QueueAgent:
             return True
         except Exception as e:
             logger.error(f"Error deleting queue '{queue_name}': {e}")
+
+            # Check if we are connected, if not try to reconnect and delete again
+            if self.connection.is_closed:
+                logger.warning(
+                    "Connection is closed. Attempting to reconnect and try deleting again."
+                )
+                if self.connect():
+                    self.delete_queue(queue_name)
+                else:
+                    logger.error("Reconnection attempt from delete_queue() failed.")
+
         return False
 
     def publish_message(self, queue_name, message_body):
@@ -247,6 +258,16 @@ class QueueAgent:
                 return None
         except Exception as e:
             logger.error(f"Error retrieving message from queue '{queue_name}': {e}")
+
+            # Check if we are connected, if not try to reconnect and get message again
+            if self.connection.is_closed:
+                logger.warning(
+                    "Connection is closed. Attempting to reconnect and try getting message again."
+                )
+                if self.connect():
+                    return self.get_message(queue_name, auto_ack=auto_ack)
+                else:
+                    logger.error("Reconnection attempt from get_message() failed.")
         return None
 
     def acknowledge_message(self, message):
@@ -339,3 +360,18 @@ class QueueAgent:
 
         arguments = props.get("arguments", {})
         return arguments.get("row_count")
+
+    def get_job_uid(self, queue_name):
+        """
+        Get the value of the jobuid argument of a queue.
+
+        This is set when the queue is created for a specific job.
+        After a file is processed, it is then passed to the results queue
+        when that is created for a file.
+        """
+        props = self.get_queue_props(queue_name)
+        if not props:
+            return None
+
+        arguments = props.get("arguments", {})
+        return arguments.get("jobuid")
