@@ -128,6 +128,12 @@ class QueueAgent:
             return True
         except Exception as e:
             logger.error(f"Error creating queue '{queue_name}': {e}")
+            # Try to reconnect and get message again
+            if self.connect():
+                return self.create_queue(queue_name, arguments=arguments)
+            else:
+                logger.error("Reconnection attempt from create_queue() failed.")
+
         return False
 
     def delete_queue(self, queue_name):
@@ -141,15 +147,14 @@ class QueueAgent:
         except Exception as e:
             logger.error(f"Error deleting queue '{queue_name}': {e}")
 
-            # Check if we are connected, if not try to reconnect and delete again
-            if self.connection.is_closed:
-                logger.warning(
-                    "Connection is closed. Attempting to reconnect and try deleting again."
-                )
-                if self.connect():
-                    self.delete_queue(queue_name)
-                else:
-                    logger.error("Reconnection attempt from delete_queue() failed.")
+            # Try to reconnect and delete again
+            logger.warning(
+                "Connection is closed. Attempting to reconnect and try deleting again."
+            )
+            if self.connect():
+                self.delete_queue(queue_name)
+            else:
+                logger.error("Reconnection attempt from delete_queue() failed.")
 
         return False
 
@@ -179,6 +184,16 @@ class QueueAgent:
             return True
         except Exception as e:
             logger.error(f"Error publishing message to queue '{queue_name}': {e}")
+
+            # Try to reconnect and get message again
+            logger.warning(
+                "Connection is closed. Attempting to reconnect and try getting message again."
+            )
+            if self.connect():
+                return self.publish_message(queue_name, message_body)
+            else:
+                logger.error("Reconnection attempt from publish_message() failed.")
+
         return False
 
     def get_message_count(self, queue_name, message_type="ready"):
@@ -259,15 +274,15 @@ class QueueAgent:
         except Exception as e:
             logger.error(f"Error retrieving message from queue '{queue_name}': {e}")
 
-            # Check if we are connected, if not try to reconnect and get message again
-            if self.connection.is_closed:
-                logger.warning(
-                    "Connection is closed. Attempting to reconnect and try getting message again."
-                )
-                if self.connect():
-                    return self.get_message(queue_name, auto_ack=auto_ack)
-                else:
-                    logger.error("Reconnection attempt from get_message() failed.")
+            # Try to reconnect and get message again
+            logger.warning(
+                "Connection is closed. Attempting to reconnect and try getting message again."
+            )
+            if self.connect():
+                return self.get_message(queue_name, auto_ack=auto_ack)
+            else:
+                logger.error("Reconnection attempt from get_message() failed.")
+
         return None
 
     def acknowledge_message(self, message):
@@ -294,6 +309,15 @@ class QueueAgent:
             logger.error(
                 f"Error acknowledging message with delivery tag '{delivery_tag}': {e}"
             )
+
+            # Try to reconnect and get message again
+            logger.warning(
+                "Connection is closed. Attempting to reconnect and try getting message again."
+            )
+            if self.connect():
+                return self.acknowledge_message(message)
+            else:
+                logger.error("Reconnection attempt from acknowledge_message() failed.")
         return False
 
     def reject_message(self, message, requeue=True):
@@ -324,6 +348,16 @@ class QueueAgent:
             logger.error(
                 f"Error rejecting message with delivery tag '{delivery_tag}': {e}"
             )
+
+            # Try to reconnect and get message again
+            logger.warning(
+                "Connection is closed. Attempting to reconnect and try getting message again."
+            )
+            if self.connect():
+                return self.reject_message(message, requeue=requeue)
+            else:
+                logger.error("Reconnection attempt from reject_message() failed.")
+
         return False
 
     def get_queue_props(self, queue_name):
