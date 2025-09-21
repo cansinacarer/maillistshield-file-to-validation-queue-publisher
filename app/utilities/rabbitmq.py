@@ -285,6 +285,41 @@ class QueueAgent:
 
         return None
 
+    def retrieve_all_messages_and_delete_queue(self, queue_name):
+        """
+        Retrieve all messages from the specified queue.
+
+        This is used to drain the queue when generating result files.
+
+        We have a timeout of 5 minutes to avoid infinite loops.
+
+        Args:
+            queue_name: Name of the queue to retrieve from.
+
+        Returns:
+            A list of message bodies as dicts.
+        """
+        messages_retrieved = []
+        start_time = time.time()
+
+        # While messages remain in the queue and elapsed time is less than 5 minutes, keep fetching
+        while (
+            self.get_message_count(queue_name) > len(messages_retrieved)
+            and (time.time() - start_time) < 300
+        ):
+            message = self.get_message(queue_name, auto_ack=True)
+            if message:
+                messages_retrieved.append(message)
+            else:
+                logger.error(
+                    f"Expected more messages in queue '{queue_name}' but failed to retrieve."
+                )
+
+        logger.debug(
+            f"Retrieved all {len(messages_retrieved)} messages from queue {queue_name}."
+        )
+        return messages_retrieved
+
     def acknowledge_message(self, message):
         """
         Acknowledge a message by its delivery tag.
