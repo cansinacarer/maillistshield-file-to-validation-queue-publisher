@@ -11,4 +11,6 @@ __Job States:__
 - Success state:
   - `file_queued`
 
+---
+
 See the [main repository](https://github.com/cansinacarer/maillistshield-com) for a complete list of other microservices.
